@@ -101,9 +101,6 @@ for subject_id, sections in poses.items():
     which_matrix = int(subject_id) % 2
     for section_id, section in sections.items():
         section_error=[]
-        print section_id
-        # time_stamp = np.zeros([len(section['data']), 1])
-        # error = np.zeros([len(section['data']), 8])
         for i, d in enumerate(section['time']):
             if section_id=='basic':
                 robot_calculation=np.dot(base_matrices['basic'], section['skeleton'][i])
@@ -113,13 +110,32 @@ for subject_id, sections in poses.items():
                 robot_calculation = np.dot(base_matrices['LShoulderRoll-RShoulderPitch'], section['skeleton'][i])
 
             error=np.linalg.norm(robot_calculation-section['robot'])/8
+            # if np.isnan(error):
+            #     print section['robot']
             section_error.append(error)
-            print error
-            break
-        poses[subject_id][section_id] = {
+
+            skeleton_metrix_robot_error[subject_id][section_id] = {
             'time': section['time'],
             'error': section_error
         }
+
+#for plot:
+avg_error_per_subject=[]
+subject_id_for_plot=[]
+for subject_id, sections in skeleton_metrix_robot_error.items():
+    avg_section=[]
+    for section_id, section in sections.items():
+        avg_section.append(np.mean(section['error']))
+    avg_error_per_subject.append(np.mean(avg_section))
+    subject_id_for_plot.append(int(subject_id))
+
+y_pos = np.arange(len(subject_id_for_plot))
+plt.bar(y_pos, avg_error_per_subject, align='center', alpha=0.5)
+plt.xticks(y_pos, subject_id_for_plot)
+plt.ylabel('Avg Error (radians)')
+plt.xlabel('Subject ID')
+
+plt.show()
 
 
 # (2) TODO: create matrix
