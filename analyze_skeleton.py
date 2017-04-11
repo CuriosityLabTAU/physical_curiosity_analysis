@@ -37,103 +37,114 @@ def get_poses(angles):
 
     pose = angles[middle_bin,:]
     return pose ,middle_bin
-
-
-# data = pickle.load(open('raw_data', 'rb'))
-# # data[id][section] = array(dict{skeleton, robot, time})
-# poses = {}
-# for subject_id, sections in data.items():           # go over subject
-#     poses[subject_id] = {}
-#     for section_id, section in sections.items():    # go over sections
-#         if 'trans' not in section_id:               # not 'transformation'
 #
-#             # print(section_id)
-#             time_stamp = np.zeros([len(section['data']), 1])
-#             skeleton_angles = np.zeros([len(section['data']), 8])
-#             robot_angles=np.zeros([len(section['data']), 8])
-#             for i, d in enumerate(section['data']): # go over time-steps
-#                 time_stamp[i,0] = d['time']
+# for delay in range(0,50):
+#     print delay
+#     data = pickle.load(open('raw_data', 'rb'))
+#     # data[id][section] = array(dict{skeleton, robot, time})
+#     poses = {}
+#     for subject_id, sections in data.items():           # go over subject
+#         poses[subject_id] = {}
+#         for section_id, section in sections.items():    # go over sections
+#             if 'trans' not in section_id:               # not 'transformation'
 #
-#                 skeleton_angles[i, :] = np.array([float(x) for x in d['skeleton'].split(',')])
+#                 # print(section_id)
+#                 time_stamp = np.zeros([len(section['data']), 1])
+#                 skeleton_angles = np.zeros([len(section['data']), 8])
+#                 robot_angles=np.zeros([len(section['data']), 8])
+#                 for i, d in enumerate(section['data']): # go over time-steps
+#                     time_stamp[i,0] = d['time']
 #
-#                 robot_angles[i, :] = np.array([float(x) for x in d['robot'].split(';')[1].split(',')])
+#                     skeleton_angles[i, :] = np.array([float(x) for x in d['skeleton'].split(',')])
 #
-#             skeleton_poses, pose_bins = get_poses(skeleton_angles)
-#             robot_poses = robot_angles[pose_bins,:]
-#             time_stamp=time_stamp[pose_bins,:]
+#                     robot_angles[i, :] = np.array([float(x) for x in d['robot'].split(';')[1].split(',')])
 #
-            # poses[subject_id][section_id] = {
-            #     'time': time_stamp,
-            #     'skeleton': skeleton_poses,
-            #     'robot': robot_poses
-            # }
+#                 skeleton_poses, pose_bins = get_poses(skeleton_angles)
+#                 skeleton_poses=skeleton_poses[:-3]
+#                 pose_bins=pose_bins[:-3]
+#
+#                 robot_poses = robot_angles[[x+delay for x in pose_bins],:]
+#
+#                 time_stamp=time_stamp[pose_bins,:]
+#
+#                 poses[subject_id][section_id] = {
+#                     'time': time_stamp,
+#                     'skeleton': skeleton_poses,
+#                     'robot': robot_poses
+#                 }
+#
+#     pickle.dump(obj=poses, file=open('../physical_curiosity_analysis/data_after_analysis_'+str(delay), 'wb'))
+avg_error_per_delays=[]
+for delay in range(0,42):
 
 
-# pickle.dump(obj=poses, file=open('../analysis/data_after_analysis', 'wb'))
-
-poses = pickle.load(open('data_after_analysis', 'rb'))
+    poses = pickle.load(open('data_after_analysis_'+str(delay), 'rb'))
 
 
-# (1) TODO: for each time stamp: skeleton * matrix = robot
-# error = skeleton * matrix - robot
+    # (1) TODO: for each time stamp: skeleton * matrix = robot
+    # error = skeleton * matrix - robot
 
-def switch_angles(angle_name_0, angle_name_1):
-    matrix = np.eye(8)
-    angle_0 = pNames.index(angle_name_0)
-    angle_1 = pNames.index(angle_name_1)
-    matrix[angle_0, angle_0] = 0
-    matrix[angle_1, angle_1] = 0
-    matrix[angle_0, angle_1] = 1
-    matrix[angle_1, angle_0] = 1
-    return matrix
+    def switch_angles(angle_name_0, angle_name_1):
+        matrix = np.eye(8)
+        angle_0 = pNames.index(angle_name_0)
+        angle_1 = pNames.index(angle_name_1)
+        matrix[angle_0, angle_0] = 0
+        matrix[angle_1, angle_1] = 0
+        matrix[angle_0, angle_1] = 1
+        matrix[angle_1, angle_0] = 1
+        return matrix
 
-base_matrices = np.eye(8)
-pNames = ['LShoulderPitch', 'LShoulderRoll', 'LElbowYaw', 'LElbowRoll',
-               'RShoulderPitch', 'RShoulderRoll', 'RElbowYaw', 'RElbowRoll']
-base_matrices = {}
-base_matrices['basic'] = np.eye(8)
-base_matrices['LShoulderPitch-RShoulderRoll'] = switch_angles('LShoulderPitch', 'RShoulderRoll')
-base_matrices['LShoulderRoll-RShoulderPitch'] = switch_angles('LShoulderRoll', 'RShoulderPitch')
+    base_matrices = np.eye(8)
+    pNames = ['LShoulderPitch', 'LShoulderRoll', 'LElbowYaw', 'LElbowRoll',
+                   'RShoulderPitch', 'RShoulderRoll', 'RElbowYaw', 'RElbowRoll']
+    base_matrices = {}
+    base_matrices['basic'] = np.eye(8)
+    base_matrices['LShoulderPitch-RShoulderRoll'] = switch_angles('LShoulderPitch', 'RShoulderRoll')
+    base_matrices['LShoulderRoll-RShoulderPitch'] = switch_angles('LShoulderRoll', 'RShoulderPitch')
 
-skeleton_metrix_robot_error={}
-for subject_id, sections in poses.items():
-    skeleton_metrix_robot_error[subject_id]={}
-    which_matrix = int(subject_id) % 2
-    for section_id, section in sections.items():
-        section_error=[]
-        for i, d in enumerate(section['time']):
-            if section_id=='basic':
-                robot_calculation=np.dot(base_matrices['basic'], section['skeleton'][i])
-            elif which_matrix == 0:
-                robot_calculation = np.dot(base_matrices['LShoulderPitch-RShoulderRoll'], section['skeleton'][i])
-            else:
-                robot_calculation = np.dot(base_matrices['LShoulderRoll-RShoulderPitch'], section['skeleton'][i])
+    skeleton_metrix_robot_error={}
+    for subject_id, sections in poses.items():
+        skeleton_metrix_robot_error[subject_id]={}
+        which_matrix = int(subject_id) % 2
+        for section_id, section in sections.items():
+            section_error=[]
+            for i, d in enumerate(section['time']):
+                if section_id=='basic':
+                    robot_calculation=np.dot(base_matrices['basic'], section['skeleton'][i])
+                elif which_matrix == 0:
+                    robot_calculation = np.dot(base_matrices['LShoulderPitch-RShoulderRoll'], section['skeleton'][i])
+                else:
+                    robot_calculation = np.dot(base_matrices['LShoulderRoll-RShoulderPitch'], section['skeleton'][i])
 
-            error=np.linalg.norm(robot_calculation-section['robot'])/8
-            # if np.isnan(error):
-            #     print section['robot']
-            section_error.append(error)
+                error=np.linalg.norm(robot_calculation-section['robot'][i])/8
 
-            skeleton_metrix_robot_error[subject_id][section_id] = {
-            'time': section['time'],
-            'error': section_error
-        }
+                section_error.append(error)
 
-#for plot:
-avg_error_per_subject=[]
-subject_id_for_plot=[]
-for subject_id, sections in skeleton_metrix_robot_error.items():
-    avg_section=[]
-    for section_id, section in sections.items():
-        avg_section.append(np.mean(section['error']))
-    avg_error_per_subject.append(np.mean(avg_section))
-    subject_id_for_plot.append(int(subject_id))
+                skeleton_metrix_robot_error[subject_id][section_id] = {
+                'time': section['time'],
+                'error': section_error
+            }
 
-y_pos = np.arange(len(subject_id_for_plot))
-plt.bar(y_pos, avg_error_per_subject, align='center', alpha=0.5)
-plt.xticks(y_pos, subject_id_for_plot)
+
+    #for plot:
+    avg_error_per_subject=[]
+    subject_id_for_plot=[]
+    for subject_id, sections in skeleton_metrix_robot_error.items():
+        avg_section=[]
+        for section_id, section in sections.items():
+            avg_section.append(np.nanmean(section['error']))
+
+        avg_error_per_subject.append(np.nanmean(avg_section))
+        subject_id_for_plot.append(int(subject_id))
+    avg_error_per_delay=np.mean(avg_error_per_subject)
+    avg_error_per_delays.append(avg_error_per_delay)
+
+
+y_pos = np.arange(len(avg_error_per_delays))
+plt.bar(y_pos, avg_error_per_delays, align='center', alpha=0.5)
+plt.xticks(y_pos, range(0,42))
 plt.ylabel('Avg Error (radians)')
-plt.xlabel('Subject ID')
+plt.xlabel('Delay(time_stamp')
 
 plt.show()
 
