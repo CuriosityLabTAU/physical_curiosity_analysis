@@ -1,7 +1,10 @@
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from scipy.signal import medfilt
+import seaborn as sns
+
 
 median_filter_window = 31
 movement_threshold = 0.002
@@ -136,18 +139,28 @@ for delay in range(0,42):
 
         avg_error_per_subject.append(np.nanmean(avg_section))
         subject_id_for_plot.append(int(subject_id))
-    avg_error_per_delay=np.mean(avg_error_per_subject)
-    avg_error_per_delays.append(avg_error_per_delay)
+    avg_error_per_delays.append(avg_error_per_subject)
 
 
-y_pos = np.arange(len(avg_error_per_delays))
-plt.bar(y_pos, avg_error_per_delays, align='center', alpha=0.5)
-plt.xticks(y_pos, range(0,42))
-plt.ylabel('Avg Error (radians)')
-plt.xlabel('Delay(time_stamp')
+# y_pos = np.arange(len(avg_error_per_delays))
+# plt.bar(y_pos, avg_error_per_delays, align='center', alpha=0.5)
+# plt.xticks(y_pos, range(0,42))
+# plt.ylabel('Avg Error (radians)')
+# plt.xlabel('Delay(time_stamp')
+# plt.show()
 
-plt.show()
+####plot
+data=[]
+for i in range(0,42):
+    lists=[[x, i] for x in avg_error_per_delays[i]]
+    [data.append(x) for x in lists]
+error=pd.DataFrame(data,columns=['error','delay'])
 
+sns.set_style("whitegrid")
+ax = sns.barplot(x="delay", y="error", data=error, capsize=.2 ,palette="Blues_d")
+ax.set(xlabel='Delay(time_stamp)', ylabel='Avg Error (radians)')
+
+sns.plt.show()
 
 # (2) TODO: create matrix
 # talk to torr
