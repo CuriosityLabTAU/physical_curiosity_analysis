@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import medfilt
 import seaborn as sns
-
+import scipy.optimize
 
 median_filter_window = 31
 movement_threshold = 0.002
@@ -112,6 +112,7 @@ for delay in range(0,42):
         for section_id, section in sections.items():
             section_error=[]
             for i, d in enumerate(section['time']):
+
                 if section_id=='basic':
                     robot_calculation=np.dot(base_matrices['basic'], section['skeleton'][i])
                 elif which_matrix == 0:
@@ -141,15 +142,7 @@ for delay in range(0,42):
         subject_id_for_plot.append(int(subject_id))
     avg_error_per_delays.append(avg_error_per_subject)
 
-
-# y_pos = np.arange(len(avg_error_per_delays))
-# plt.bar(y_pos, avg_error_per_delays, align='center', alpha=0.5)
-# plt.xticks(y_pos, range(0,42))
-# plt.ylabel('Avg Error (radians)')
-# plt.xlabel('Delay(time_stamp')
-# plt.show()
-
-####plot
+#Plot
 data=[]
 for i in range(0,42):
     lists=[[x, i] for x in avg_error_per_delays[i]]
@@ -163,7 +156,18 @@ ax.set(xlabel='Delay(time_stamp)', ylabel='Avg Error (radians)')
 sns.plt.show()
 
 # (2) TODO: create matrix
-# talk to torr
+# # talk to torr
+# #option 1
+# res = scipy.optimize.least_squares(predict_row, x0, args=(Xmat, Ymat[row, :]))
+#
+# def predict_row(row_in_A, a_12x34, row_in_a1234):
+#     return row_in_a1234 - np.dot(row_in_A, a_12x34)
+#
+# # option 2
+# # finding the matrix using linear algebra
+# Amat = np.linalg.lstsq(Xmat.T, Ymat.T)
+# Amat = Amat.T
+
 # given skeleton and robot --> matrix
 
 # (4) TODO: learning of subject
