@@ -40,7 +40,9 @@ def get_poses(angles):
 
     pose = angles[middle_bin,:]
     return pose ,middle_bin
-#
+
+
+
 # for delay in range(0,50):
 #     print delay
 #     data = pickle.load(open('raw_data', 'rb'))
@@ -138,20 +140,39 @@ for delay in range(0,42):
         for section_id, section in sections.items():
             avg_section.append(np.nanmean(section['error']))
 
-        avg_error_per_subject.append(np.nanmean(avg_section))
+        avg_error_per_subject.append(np.rad2deg(np.nanmean(avg_section)))
         subject_id_for_plot.append(int(subject_id))
     avg_error_per_delays.append(avg_error_per_subject)
+
+#Find time interval:
+intraval_time=[]
+data = pickle.load(open('raw_data', 'rb'))
+for subject_id, sections in data.items():
+    for section_id, section in sections.items():
+        if 'trans' not in section_id:
+            now=0
+            for step in section['data']:
+                intraval= step['time'] -now
+                intraval_time.append(intraval)
+                now =step['time']
+intraval_time = round(np.median(intraval_time),2)
 
 #Plot
 data=[]
 for i in range(0,42):
-    lists=[[x, i] for x in avg_error_per_delays[i]]
+    lists=[[x, i*intraval_time] for x in avg_error_per_delays[i]]
     [data.append(x) for x in lists]
 error=pd.DataFrame(data,columns=['error','delay'])
 
+for_rank= error.groupby(['delay'],as_index=False).mean()
+for_rank= for_rank['error']
+
 sns.set_style("whitegrid")
-ax = sns.barplot(x="delay", y="error", data=error, capsize=.2 ,palette="Blues_d")
-ax.set(xlabel='Delay(time_stamp)', ylabel='Avg Error (radians)')
+pal = sns.color_palette("Blues_d", len(for_rank))
+rank = for_rank.argsort().argsort()
+ax = sns.barplot(x="delay", y="error", data=error, capsize=.2 ,palette=np.array(pal[::-1])[rank])
+ax.set(xlabel='Delay(sec)', ylabel='Avg Error (degrees)')
+sns.plt.title('Avg Error between robot angles and skeleton angles, in different delays')
 
 sns.plt.show()
 
