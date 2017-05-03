@@ -9,6 +9,27 @@ import scipy.optimize
 median_filter_window = 31
 movement_threshold = 0.002
 
+###For switch angles matrix:
+def switch_angles(angle_name_0, angle_name_1):
+    matrix = np.eye(8)
+    angle_0 = pNames.index(angle_name_0)
+    angle_1 = pNames.index(angle_name_1)
+    matrix[angle_0, angle_0] = 0
+    matrix[angle_1, angle_1] = 0
+    matrix[angle_0, angle_1] = 1
+    matrix[angle_1, angle_0] = 1
+    return matrix
+
+
+base_matrices = np.eye(8)
+pNames = ['LShoulderPitch', 'LShoulderRoll', 'LElbowYaw', 'LElbowRoll',
+          'RShoulderPitch', 'RShoulderRoll', 'RElbowYaw', 'RElbowRoll']
+base_matrices = {}
+base_matrices['basic'] = np.eye(8)
+base_matrices['LShoulderPitch-RShoulderRoll'] = switch_angles('LShoulderPitch', 'RShoulderRoll')
+base_matrices['LShoulderRoll-RShoulderPitch'] = switch_angles('LShoulderRoll', 'RShoulderPitch')
+
+
 def get_poses(angles):
     t = angles[:, 0]
     # plt.plot(t, angles[:,1:])
@@ -89,24 +110,6 @@ for delay in range(0,42):
     # (1) TODO: for each time stamp: skeleton * matrix = robot
     # error = skeleton * matrix - robot
 
-    def switch_angles(angle_name_0, angle_name_1):
-        matrix = np.eye(8)
-        angle_0 = pNames.index(angle_name_0)
-        angle_1 = pNames.index(angle_name_1)
-        matrix[angle_0, angle_0] = 0
-        matrix[angle_1, angle_1] = 0
-        matrix[angle_0, angle_1] = 1
-        matrix[angle_1, angle_0] = 1
-        return matrix
-
-    base_matrices = np.eye(8)
-    pNames = ['LShoulderPitch', 'LShoulderRoll', 'LElbowYaw', 'LElbowRoll',
-                   'RShoulderPitch', 'RShoulderRoll', 'RElbowYaw', 'RElbowRoll']
-    base_matrices = {}
-    base_matrices['basic'] = np.eye(8)
-    base_matrices['LShoulderPitch-RShoulderRoll'] = switch_angles('LShoulderPitch', 'RShoulderRoll')
-    base_matrices['LShoulderRoll-RShoulderPitch'] = switch_angles('LShoulderRoll', 'RShoulderPitch')
-
     skeleton_metrix_robot_error={}
     for subject_id, sections in poses.items():
         skeleton_metrix_robot_error[subject_id]={}
@@ -174,20 +177,61 @@ ax = sns.barplot(x="delay", y="error", data=error, capsize=.2 ,palette=np.array(
 ax.set(xlabel='Delay(sec)', ylabel='Avg Error (degrees)')
 sns.plt.title('Avg Error between robot angles and skeleton angles, in different delays')
 
-sns.plt.show()
+# sns.plt.show()
 
 # (2) TODO: create matrix
-# # talk to torr
-# #option 1
+#  talk to torr
+#~~~~~~~~~~~~~this is from torr~~~~~~
+# option 1
+
 # res = scipy.optimize.least_squares(predict_row, x0, args=(Xmat, Ymat[row, :]))
 #
 # def predict_row(row_in_A, a_12x34, row_in_a1234):
 #     return row_in_a1234 - np.dot(row_in_A, a_12x34)
 #
-# # option 2
-# # finding the matrix using linear algebra
+#  option 2
+#  finding the matrix using linear algebra
 # Amat = np.linalg.lstsq(Xmat.T, Ymat.T)
 # Amat = Amat.T
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# # use delay =15
+# poses = pickle.load(open('data_after_analysis_15', 'rb'))
+#
+# create_matrix_error = {}
+#
+# skeleton_metrix_robot_error = {}
+# for subject_id, sections in poses.items():
+#     create_matrix_error[subject_id] = {}
+#     which_matrix = int(subject_id) % 2
+#     for section_id, section in sections.items():
+#         skeleton_vectors=np.empty((0,8))
+#         robot_vectors =np.empty((0,8))
+#         for i, d in enumerate(section['time']):
+#
+#             if section_id == 'basic':
+#                 robot_calculation = np.dot(base_matrices['basic'], section['skeleton'][i])
+#             # elif which_matrix == 0:
+#             #     robot_calculation = np.dot(base_matrices['LShoulderPitch-RShoulderRoll'], section['skeleton'][i])
+#             # else:
+#             #     robot_calculation = np.dot(base_matrices['LShoulderRoll-RShoulderPitch'], section['skeleton'][i])
+#
+#                 skeleton_vectors=np.vstack((skeleton_vectors, section['skeleton'][i]))
+#                 robot_vectors=np.vstack((robot_vectors, section['robot'][i]))
+#                 print skeleton_vectors.shape
+#
+#                 Amat = np.linalg.lstsq(skeleton_vectors, robot_vectors)[0]
+#
+#                 print robot_vectors - np.dot(skeleton_vectors,Amat)
+#                 print robot_vectors - np.dot(skeleton_vectors, np.eye(8))
+#
+#                 # print Amat
+#                 print 'ff'
+#                 # Amat = Amat.T
+#                 # print Amat
+#                 # break
+#         break
+#     break
+
 
 # given skeleton and robot --> matrix
 
@@ -197,143 +241,6 @@ sns.plt.show()
 # - mathematical model of finding a matrix (from torr)
 # --- reward = sum delta_matrix_elements
 # - neural networks: skeleton --> robot (no hidden layer, linear output)
-class NN:
-##http://briandolhansky.com/blog/artificial-neural-networks-linear-regression-part-1
-    def __init__(self, nInput, nOutput, eta=0.1, eps=0.1):
-        self.nInput = nInput
-        self.nOutput = nOutput
-        self.eta = eta
-        self.eps = eps
-        np.random.seed(1)
-
-    def sig(self, z):
-        h = z
-        return h
-
-    def sigtag(self, z):
-        stag = np.zeros(z.shape)
-        for i in range(0, z.shape[0]):
-            if z[i] > 0:
-                stag[i] = 1
-            else:
-                stag[i] = 0
-        return stag
-
-    def initialize_weights(self, eps_in=None):
-        n = self.nInput
-        m = self.nOutput
-        if eps_in is not None:
-            eps = eps_in
-        else:
-            eps = self.eps
-        self.Wa1 = np.random.rand(m,n+1)*2*eps-eps
-
-
-    def forProp(self, x):
-        xa = np.insert(x, 0, 1)
-        s1 = np.dot(self.Wa1, xa)
-        z = self.sig(s1)
-        return xa, s1, z
-
-    def cost(self, d, y):
-        e = d-y
-        J = (1/2)*np.dot(e, e)
-        return J
-
-    def batch_learn(self, x_batch, d_batch):
-        D1 = 0
-        D2 = 0
-        J = 0
-        batch_size = x_batch.shape[0]
-        eta_batch = self.eta / batch_size
-        for i in range(0, batch_size):
-            x = x_batch[i]
-            d = d_batch[i]
-            xa, s1, z= self.forProp(x)
-            e2 = d-z
-            sigtag1 = self.sigtag(s1)
-            e1 = np.dot(W2.T, d2)
-            d1 = e1*sigtag1
-            D1 += np.outer(-d1, xa.T)
-            J += self.cost(d, y) / batch_size
-        self.Wa1 -= eta_batch * D1
-        return J
-
-    class Experiment:
-
-        def __init__(self, nInput, nHidden, nOut, eta1, eps1, activation,
-                     n_epoch, n_batch, training, training_labels, validation, validation_labels):
-            self.nInput = nInput
-            self.nHidden = nHidden
-            self.nOut = nOut
-            self.eta1 = eta1
-            self.eps1 = eps1
-            self.activation = activation
-            random.seed(200)
-            self.n_epoch = n_epoch
-            self.n_batch = n_batch
-            self.n_training = len(training)
-            self.n_validation = len(validation)
-            self.training = training
-            self.training_labels = training_labels
-            self.validation = validation
-            self.validation_labels = validation_labels
-            self.batch_size = int(self.n_training / n_batch)
-
-        def success_ratio(self, d, y):
-            y = int(round(y))
-            if d == y:
-                return 1
-            else:
-                return 0
-
-        def run(self):
-            nn1 = NN(self.nInput, self.nHidden, self.nOut, self.eta1, self.eps1, self.activation)
-            nn1.initialize_weights()
-
-            training_set, training_labels = self.training, self.training_labels
-            validation_set, validation_labels = self.validation, self.validation_labels
-
-            J_training = np.zeros((self.n_epoch * self.n_batch, 1))
-            J_validation = np.zeros((self.n_epoch * self.n_batch, 1))
-            SR_validation = np.zeros((self.n_epoch * self.n_batch, 1))
-
-            for k in range(0, self.n_epoch):
-                for i in range(0, self.n_batch):
-                    #                 print('epoch = ', k, ' batch = ', i)
-                    x = training_set[i * self.batch_size:(i + 1) * self.batch_size]
-                    d = training_labels[i * self.batch_size:(i + 1) * self.batch_size]
-                    J_training[i + k * self.n_batch] = nn1.batch_learn(x, d)
-
-                    for j in range(0, self.n_validation):
-                        x = validation_set[j]
-                        d = validation_labels[j]
-                        xa, s1, za, s2, y = nn1.forProp(x)
-
-                        J_validation[i + k * self.n_batch] += nn1.cost(d, y) / self.n_validation
-
-                        SR_validation[i + k * self.n_batch] += self.success_ratio(d, y) / self.n_validation
-
-            training_classification = []
-            validation_classification = []
-            for i in range(0, self.n_training):
-                x = training_set[i]
-                d = training_labels[i]
-                xa, s1, za, s2, y = nn1.forProp(x)
-                training_classification.append([y[0], d])
-
-            for i in range(0, self.n_validation):
-                x = validation_set[i]
-                d = validation_labels[i]
-                xa, s1, za, s2, y = nn1.forProp(x)
-                validation_classification.append([y[0], d])
-
-            training_classification_df = pd.DataFrame(training_classification)
-            validation_classification_df = pd.DataFrame(validation_classification)
-            return J_training, J_validation, SR_validation, training_classification_df, validation_classification_df
-
-
-
 
 # -- on-line learning (play with learning rate)
 # --- reward = prediction error
@@ -344,6 +251,41 @@ class NN:
 
 # (3) TODO: task
 # error = pose - task_pose
+poses = pickle.load(open('data_after_analysis_15', 'rb'))
+
+task_error = {}
+for subject_id, sections in poses.items():
+    task_error[subject_id] = {}
+    which_matrix = int(subject_id) % 2
+    if which_matrix == 0:
+        subject_matrix = base_matrices['LShoulderPitch-RShoulderRoll']
+    else:
+        subject_matrix = base_matrices['LShoulderRoll-RShoulderPitch']
+
+    for section_id, section in sections.items():
+        task_error[subject_id][section_id] = []
+        for i, d in enumerate(section['time']):
+            pose=section['skeleton'][i]
+            error=0
+            task_pose_original=0
+            if section_id == 'task1':
+                task_pose_original=np.dot(np.array([1, 2, 0, 0, 5, 6, 0, 0]),subject_matrix)
+                error=pose-task_pose_original
+
+            elif section_id == 'task2':
+                task_pose_original = np.dot(np.array([1, 2, 0, 0, 5, 6, 0, 0]), subject_matrix)
+                error = pose - task_pose_original
+
+            elif section_id == 'task3':
+                task_pose_original = np.dot(np.array([1, 2, 0, 0, 5, 6, 0, 0]), subject_matrix)
+                error = pose - task_pose_original
+
+            else:
+                continue
+
+            task_error[subject_id][section_id].append(error)
+
+
 # find lowest point = score
 
 # TODO: task
