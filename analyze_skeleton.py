@@ -182,48 +182,49 @@ base_matrices['LShoulderRoll-RShoulderPitch'] = switch_angles('LShoulderRoll', '
 
 
 ### createing matrix error:
-# poses = pickle.load(open('data_after_analysis_15', 'rb'))
-#
-# matrix_error = {}
-# for subject_id, sections in poses.items():
-#     matrix_error[subject_id] = {}
-#     #matrix that was used for subject
-#     which_matrix = int(subject_id) % 2
-#     if which_matrix == 0:
-#         matrix = base_matrices['LShoulderPitch-RShoulderRoll']
-#     else:
-#         matrix = base_matrices['LShoulderRoll-RShoulderPitch']
-#
-#     for section_id, section in sections.items():
-#         if section_id == 'learn':
-#             skeleton_vectors=np.empty((0,8))
-#             robot_vectors =np.empty((0,8))
-#             for i, d in enumerate(section['time']):
-#                 # print i
-#
-#                 skeleton_vectors=np.vstack((skeleton_vectors, section['skeleton'][i]))
-#                 robot_vectors=np.vstack((robot_vectors, section['robot'][i]))
-#
-#                 if i > 0:
-#                     pinv_skeleton = np.linalg.pinv(skeleton_vectors)
-#                     Amat = np.dot(pinv_skeleton, robot_vectors)
-#
-#                     error= np.linalg.norm((matrix - Amat)[(0,1,4,5),])/4
-#
-#                     matrix_error[subject_id][i+1] = error
-#
-# #statistical results - histogram of matrix_error across subjects:
-# x=[]
-# for subject_id,i in matrix_error.items():
-#     x.append(i[min(i, key=i.get)])
-#
-# sns.set(color_codes=True)
-# hist =sns.distplot(x, bins=5, kde=False, rug=True)
-# hist.set(xlabel='Min Error (degrees)', ylabel='Number of subjects')
-# sns.plt.title('Histogram of matrix error across subjects')
-# sns.plt.show()
+poses = pickle.load(open('data_after_analysis_15', 'rb'))
 
-### TODO: task # add real # make avg beter
+matrix_error = {}
+for subject_id, sections in poses.items():
+    matrix_error[subject_id] = {}
+    #matrix that was used for subject
+    which_matrix = int(subject_id) % 2
+    if which_matrix == 0:
+        matrix = base_matrices['LShoulderPitch-RShoulderRoll']
+    else:
+        matrix = base_matrices['LShoulderRoll-RShoulderPitch']
+
+    for section_id, section in sections.items():
+        if section_id == 'learn':
+            skeleton_vectors=np.empty((0,8))
+            robot_vectors =np.empty((0,8))
+            for i, d in enumerate(section['time']):
+                # print i
+
+                skeleton_vectors=np.vstack((skeleton_vectors, section['skeleton'][i]))
+                robot_vectors=np.vstack((robot_vectors, section['robot'][i]))
+
+                if i > 0:
+                    pinv_skeleton = np.linalg.pinv(skeleton_vectors)
+                    Amat = np.dot(pinv_skeleton, robot_vectors)
+
+                    error= np.linalg.norm((matrix - Amat)[(0,1,4,5),])/4
+
+                    matrix_error[subject_id][i+1] = error
+
+#statistical results - histogram of matrix_error across subjects:
+for_correlation=[]
+x=[]
+for subject_id,i in matrix_error.items():
+    x.append(i[min(i, key=i.get)])
+    for_correlation.append([subject_id,i[min(i, key=i.get)]])
+sns.set(color_codes=True)
+hist =sns.distplot(x, bins=5, kde=False, rug=True)
+hist.set(xlabel='Min Error (degrees)', ylabel='Number of subjects')
+sns.plt.title('Histogram of matrix error across subjects')
+sns.plt.show()
+
+###tasks:
 
 poses = pickle.load(open('data_after_analysis_15', 'rb'))
 
@@ -256,7 +257,7 @@ for subject_id, sections in poses.items():
 
                 elif section_id == 'task3':
                     task_pose_original = np.dot(np.array([1.45, 1.00, 0.00, -0.034, 1.45, -1.00, 0.00, 0.034]), inv(subject_matrix))
-                    error = pose - task_pose_original
+                    error = (pose - task_pose_original)[(0,1,4,5),]
 
                 agg_error=np.rad2deg(np.linalg.norm(error)/8)
                 task_error[subject_id][section_id].append(agg_error)
@@ -273,34 +274,73 @@ task_error_score_df=pd.melt(task_error_score_df, id_vars=["subject_id"], var_nam
 
 ##Statistical results on tasks:
 #plot all score tasks:
-# sns.set_style("whitegrid")
-# ax = sns.barplot(x="subject_id", y="Task score", hue="Task" , data=task_error_score_df)
-# ax.set(xlabel='Subject ID', ylabel='Task Score(degrees)')
-# sns.plt.title('Score in tasks across subjects')
-# sns.plt.show()
+sns.set_style("whitegrid")
+ax = sns.barplot(x="subject_id", y="Task score", hue="Task" , data=task_error_score_df)
+ax.set(xlabel='Subject ID', ylabel='Task Score(degrees)')
+sns.plt.title('Score in tasks across subjects')
+sns.plt.show()
 
 #plot total score for subject id:
-# total_score = {}
-# for subject_id, sections in task_error_score.items():
-#     total_score[subject_id] = 0
-#     for section_id, section in sections.items():
-#         total_score[subject_id] += task_error_score[subject_id][section_id]
-#
-# total_score_df=pd.DataFrame(total_score.items(), columns=['subject_id', 'total_score'])
-# total_score_df=total_score_df.sort_values('subject_id')
-#
-# for_rank= total_score_df['total_score']
-# sns.set_style("whitegrid")
-# pal = sns.color_palette("Blues", len(for_rank))
-# rank = for_rank.argsort().argsort()
-# ax = sns.barplot(x="subject_id", y="total_score", data=total_score_df, capsize=.2 ,palette=np.array(pal[::])[rank])
-# ax.set(xlabel='Subject ID', ylabel='Total Score(degrees)')
-# sns.plt.title('Total score across subjects')
-# sns.plt.show()
+total_score = {}
+for subject_id, sections in task_error_score.items():
+    total_score[subject_id] = 0
+    for section_id, section in sections.items():
+        total_score[subject_id] += task_error_score[subject_id][section_id]
+    for item in for_correlation:
+        if item[0]==subject_id:
+            item.append(total_score[subject_id])
+            break
 
-# #Todo plot histogram of error over all subjects
-#
-# #Todo plot histogram of error over tasks (task 1 << task3)
+total_score_df=pd.DataFrame(total_score.items(), columns=['subject_id', 'total_score'])
+total_score_df=total_score_df.sort_values('subject_id')
+
+for_rank= total_score_df['total_score']
+sns.set_style("whitegrid")
+pal = sns.color_palette("Blues", len(for_rank))
+rank = for_rank.argsort().argsort()
+ax = sns.barplot(x="subject_id", y="total_score", data=total_score_df, capsize=.2 ,palette=np.array(pal[::])[rank])
+ax.set(xlabel='Subject ID', ylabel='Total Score(degrees)')
+sns.plt.title('Total score across subjects')
+sns.plt.show()
+
+#plot histogram of error over all subjects:
+x=total_score_df['total_score'].tolist()
+sns.set(color_codes=True)
+hist =sns.distplot(x, bins=4, kde=False, rug=True)
+hist.set(xlabel='Total Score(degrees)', ylabel='Number of subjects')
+sns.plt.title('Histogram Total score across subjects')
+sns.plt.show()
+
+#plot histogram of error over tasks (task 1 << task3)
+fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, sharey=True)
+
+x1=task_error_score_df.set_index(['Task']).loc['task1']['Task score'].tolist()
+sns.set(color_codes=True)
+sns.distplot(x1, bins=5, kde=False, rug=True , ax=ax1)
+ax1.set(xlabel='Best Score(degrees)', ylabel='Number of subjects' ,title='Task1')
+
+x2=task_error_score_df.set_index(['Task']).loc['task2']['Task score'].tolist()
+sns.set(color_codes=True)
+sns.distplot(x2, bins=5, kde=False, rug=True ,ax=ax2)
+ax2.set(xlabel='Best Score(degrees)', ylabel='Number of subjects' ,title='Task2')
+
+x3=task_error_score_df.set_index(['Task']).loc['task3']['Task score'].tolist()
+sns.set(color_codes=True)
+sns.distplot(x3, bins=5, kde=False, rug=True, ax=ax3)
+ax3.set(xlabel='Best Score(degrees)', ylabel='Number of subjects' ,title='Task3')
+fig.suptitle('Histogram of error over tasks')
+sns.plt.show()
+
+#plot correlation matrix between error and best score
+for_correlation_df = pd.DataFrame(for_correlation, columns=['subject id','matrix error','best score'])
+# Compute the correlation matrix
+corrmat = for_correlation_df[['matrix error','best score']].corr()
+# Set up the matplotlib figure
+f, ax = plt.subplots(figsize=(12, 9))
+# Draw the heatmap using seaborn
+sns.heatmap(corrmat, vmax=.8, square=True)
+sns.plt.title('Correlation plot between error and best score')
+sns.plt.show()
 
 
 ###Crate n poses:

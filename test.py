@@ -1,6 +1,5 @@
 from naoqi import ALProxy
-import pickle
-import time
+
 
 robotIP = '192.168.0.100'
 port = 9559
