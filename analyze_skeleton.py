@@ -8,6 +8,9 @@ import seaborn as sns
 import scipy.optimize
 from numpy.linalg import inv
 from sklearn.cluster import KMeans
+import statsmodels.formula.api as sm
+import seaborn as sns
+from mpl_toolkits.mplot3d import Axes3D
 
 ###Parameters:
 median_filter_window = 31
@@ -104,6 +107,18 @@ base_matrices['LShoulderRoll-RShoulderPitch'] = switch_angles('LShoulderRoll', '
 #
 #     pickle.dump(obj=poses, file=open('../physical_curiosity_analysis/data_after_analysis_'+str(delay), 'wb'))
 
+##Taking all poses from *all* subjects:
+subject_number_of_poses={}
+poses = pickle.load(open('data_after_analysis_15', 'rb'))
+all_poses=np.empty((0,8))
+for subject_id, sections in poses.items():
+    subject_number_of_poses[subject_id]=0
+    for section_id, section in sections.items():
+        for i, d in enumerate(section['time']):
+            if section_id == 'learn':
+                subject_number_of_poses[subject_id] += 1
+            all_poses = np.vstack((all_poses, section['skeleton'][i]))
+subject_number_of_poses_df=pd.DataFrame(subject_number_of_poses.items(), columns=['subject_id', 'number_of_poses'])
 
 ### Get error for each time stamp - error = skeleton * matrix - robot:
 # avg_error_per_delays=[]
@@ -181,11 +196,14 @@ base_matrices['LShoulderRoll-RShoulderPitch'] = switch_angles('LShoulderRoll', '
 # sns.plt.show()
 
 
+
 ### createing matrix error:
 poses = pickle.load(open('data_after_analysis_15', 'rb'))
 
 matrix_error = {}
 for subject_id, sections in poses.items():
+    if subject_id==35.0: ###NO DATA ON TASK 1
+        continue
     matrix_error[subject_id] = {}
     #matrix that was used for subject
     which_matrix = int(subject_id) % 2
@@ -210,7 +228,7 @@ for subject_id, sections in poses.items():
 
                     error= np.linalg.norm((matrix - Amat)[(0,1,4,5),])/4
 
-                    matrix_error[subject_id][i+1] = error
+                    matrix_error[subject_id][i+1] = np.rad2deg(error)
 
 #statistical results - histogram of matrix_error across subjects:
 for_correlation=[]
@@ -331,27 +349,53 @@ ax3.set(xlabel='Best Score(degrees)', ylabel='Number of subjects' ,title='Task3'
 fig.suptitle('Histogram of error over tasks')
 sns.plt.show()
 
-#plot correlation matrix between error and best score
-for_correlation_df = pd.DataFrame(for_correlation, columns=['subject id','matrix error','best score'])
-# Compute the correlation matrix
-corrmat = for_correlation_df[['matrix error','best score']].corr()
-# Set up the matplotlib figure
-f, ax = plt.subplots(figsize=(12, 9))
-# Draw the heatmap using seaborn
-sns.heatmap(corrmat, vmax=.8, square=True)
-sns.plt.title('Correlation plot between error and best score')
+#plot correlation - best_score ~ matrix_error
+for_correlation_df = pd.DataFrame(for_correlation, columns=['subject_id','matrix_error','best_score'])
+result = sm.ols(formula="best_score ~ matrix_error", data=for_correlation_df).fit()
+print result.summary()
+sns.lmplot(x='matrix_error',y='best_score',data=for_correlation_df,fit_reg=True)
 sns.plt.show()
+
+#plot correlation - best_score ~ matrix_error
+for_correlation_df=pd.merge(for_correlation_df, subject_number_of_poses_df, how='inner', on='subject_id')
+print for_correlation_df
+result = sm.ols(formula="best_score ~ matrix_error + number_of_poses", data=for_correlation_df).fit()
+print result.summary()
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+x_surf = np.arange(0, 30, 4)                # generate a mesh
+y_surf = np.arange(0, 90, 4)
+x_surf, y_surf = np.meshgrid(x_surf, y_surf)
+
+exog = pd.core.frame.DataFrame({'matrix_error': x_surf.ravel(), 'number_of_poses': y_surf.ravel()})
+out = result.predict(exog = exog)
+ax.plot_surface(x_surf, y_surf,
+                out.reshape(x_surf.shape),
+                rstride=1,
+                cstride=1,
+                color='None',
+                alpha = 0.2)
+
+ax.scatter(for_correlation_df['matrix_error'], for_correlation_df['number_of_poses'], for_correlation_df['best_score'],
+           c='blue',
+           marker='o',
+           alpha=1)
+
+ax.view_init(elev=15., azim=180)
+
+ax.set_xlabel('matrix_error')
+ax.set_ylabel('number_of_poses')
+ax.set_zlabel('best_score')
+
+plt.show()
+
+# sns.lmplot(x='matrix_error',y='best_score',data=for_correlation_df,fit_reg=True)
+# sns.plt.show()
 
 
 ###Crate n poses:
-
-##Taking all poses from *all* subjects:
-poses = pickle.load(open('data_after_analysis_15', 'rb'))
-all_poses=np.empty((0,8))
-for subject_id, sections in poses.items():
-    for section_id, section in sections.items():
-        for i, d in enumerate(section['time']):
-            all_poses = np.vstack((all_poses, section['skeleton'][i]))
 
 ## k-means on all poses. k=16:
 kmeans = KMeans(n_clusters=16, n_init=50 ).fit(all_poses)
