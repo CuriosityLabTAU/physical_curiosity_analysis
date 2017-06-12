@@ -204,7 +204,7 @@ subject_number_of_poses_df=pd.DataFrame(subject_number_of_poses.items(), columns
 
 
 ### createing matrix error:
-poses = pickle.load(open('data_after_analysis_15', 'rb'))
+poses = pickle.load(open('data_after_analysis_17', 'rb'))
 
 matrix_error = {}
 for subject_id, sections in poses.items():
@@ -257,7 +257,7 @@ sns.plt.show()
 
 # ###tasks:
 
-poses = pickle.load(open('data_after_analysis_15', 'rb'))
+poses = pickle.load(open('data_after_analysis_17', 'rb'))
 
 ##Get task error (error = pose - task_pose):
 task_error = {}
