@@ -1,38 +1,44 @@
 from naoqi import ALProxy
 import pickle
+import time
+
+#data:
+poses = pickle.load(open('data_after_analysis_17', 'rb'))
+poses_16 = pickle.load(open('poses_16', 'rb'))
+
+
+#conect to robot:
 
 robotIP = '192.168.0.100'
 port = 9559
 motionProxy = ALProxy("ALMotion", robotIP, port)
 postureProxy = ALProxy("ALRobotPosture", robotIP, port)
 
-# postureProxy.goToPosture("StandInit", 0.1)
-# motionProxy.setStiffnesses("Body", 1.0)
-# motionProxy.setCollisionProtectionEnabled('Arms', True)
+postureProxy.goToPosture("StandInit", 0.1)
+motionProxy.setStiffnesses("Body", 1.0)
+motionProxy.setCollisionProtectionEnabled('Arms', True)
 
 motionProxy.rest()
 
-poses = pickle.load(open('data_after_analysis', 'rb'))
 
-sections = ['basic', 'learn', 'task1', 'task2', 'task3']
 
-pNames = ['LShoulderPitch', 'LShoulderRoll', 'LElbowYaw', 'LElbowRoll',
-          'RShoulderPitch', 'RShoulderRoll', 'RElbowYaw', 'RElbowRoll']
+# pNames = ['LShoulderPitch', 'LShoulderRoll', 'LElbowYaw', 'LElbowRoll',
+#           'RShoulderPitch', 'RShoulderRoll', 'RElbowYaw', 'RElbowRoll']
 #
-# for key in poses:
-#     print key
-#     for section in sections:
-#         print section
-#         pos_n=1
-#         for pos in poses[key][section]:
-#             print pos_n
-#             pTargetAngles = pos.tolist()[1:]
-#             print pTargetAngles
-#             time.sleep(3)
-#             motionProxy.angleInterpolationWithSpeed(pNames, pTargetAngles, 0.1)
-#             pos_n+=1
 #
-
+# for subject_id, sections in poses.items():
+#     if subject_id==11.0:
+#         for section_id, section in sections.items():
+#             if section_id =='task1':
+#                 for i, d in enumerate(section['time']):
+#                     pose = section['skeleton'][i]
+#                     print pose
+#                     pTargetAngles = pose.tolist()[0:]
+#                     print pTargetAngles
+#                     time.sleep(3)
+#                     motionProxy.angleInterpolationWithSpeed(pNames, pTargetAngles, 0.2)
+#
+#
 
 
 
