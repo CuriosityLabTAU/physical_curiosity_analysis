@@ -69,13 +69,16 @@ base_matrices['LShoulderRoll-RShoulderPitch'] = switch_angles('LShoulderRoll', '
 #     pose = angles[middle_bin,:]
 #     return pose ,middle_bin
 #
-##Save skeleton robot poses, depending on delay:
+# #Save skeleton robot poses, depending on delay:
 # for delay in range(0,50):
 #     print delay
-#     data = pickle.load(open('raw_data', 'rb'))
+#     data = pickle.load(open('raw_data_all', 'rb'))
 #     # data[id][section] = array(dict{skeleton, robot, time})
 #     poses = {}
+#
 #     for subject_id, sections in data.items():           # go over subject
+#         if subject_id==35.0: ###NO DATA ON TASK 1
+#             continue
 #         poses[subject_id] = {}
 #         for section_id, section in sections.items():    # go over sections
 #             if 'trans' not in section_id:               # not 'transformation'
@@ -106,23 +109,12 @@ base_matrices['LShoulderRoll-RShoulderPitch'] = switch_angles('LShoulderRoll', '
 #                 }
 #
 #     pickle.dump(obj=poses, file=open('../physical_curiosity_analysis/data_after_analysis_'+str(delay), 'wb'))
+#
 
-##Taking all poses from *all* subjects:
-subject_number_of_poses={}
-poses = pickle.load(open('data_after_analysis_15', 'rb'))
-all_poses=np.empty((0,8))
-for subject_id, sections in poses.items():
-    subject_number_of_poses[subject_id]=0
-    for section_id, section in sections.items():
-        for i, d in enumerate(section['time']):
-            if section_id == 'learn':
-                subject_number_of_poses[subject_id] += 1
-            all_poses = np.vstack((all_poses, section['skeleton'][i]))
-subject_number_of_poses_df=pd.DataFrame(subject_number_of_poses.items(), columns=['subject_id', 'number_of_poses'])
 
 ### Get error for each time stamp - error = skeleton * matrix - robot:
 # avg_error_per_delays=[]
-# for delay in range(0,42):
+# for delay in range(0,29):
 #
 #
 #     poses = pickle.load(open('data_after_analysis_'+str(delay), 'rb'))
@@ -142,7 +134,7 @@ subject_number_of_poses_df=pd.DataFrame(subject_number_of_poses.items(), columns
 #                 else:
 #                     robot_calculation = np.dot(base_matrices['LShoulderRoll-RShoulderPitch'], section['skeleton'][i])
 #
-#                 error=np.linalg.norm(robot_calculation-section['robot'][i])/8
+#                 error=np.linalg.norm((robot_calculation-section['robot'][i])[(0,1,4,5),])/4
 #
 #                 section_error.append(error)
 #
@@ -179,7 +171,7 @@ subject_number_of_poses_df=pd.DataFrame(subject_number_of_poses.items(), columns
 #
 # #Plot
 # data=[]
-# for i in range(0,42):
+# for i in range(0,29):
 #     lists=[[x, i*intraval_time] for x in avg_error_per_delays[i]]
 #     [data.append(x) for x in lists]
 # error=pd.DataFrame(data,columns=['error','delay'])
@@ -196,6 +188,20 @@ subject_number_of_poses_df=pd.DataFrame(subject_number_of_poses.items(), columns
 # sns.plt.show()
 
 
+# #Taking all poses from *all* subjects:
+subject_number_of_poses={}
+poses = pickle.load(open('data_after_analysis_17', 'rb'))
+all_poses=np.empty((0,8))
+for subject_id, sections in poses.items():
+    subject_number_of_poses[subject_id]=0
+    for section_id, section in sections.items():
+        for i, d in enumerate(section['time']):
+            if section_id == 'learn':
+                subject_number_of_poses[subject_id] += 1
+            all_poses = np.vstack((all_poses, section['skeleton'][i]))
+subject_number_of_poses_df=pd.DataFrame(subject_number_of_poses.items(), columns=['subject_id', 'number_of_poses'])
+# print subject_number_of_poses_df
+
 
 ### createing matrix error:
 poses = pickle.load(open('data_after_analysis_15', 'rb'))
@@ -203,6 +209,12 @@ poses = pickle.load(open('data_after_analysis_15', 'rb'))
 matrix_error = {}
 for subject_id, sections in poses.items():
     if subject_id==35.0: ###NO DATA ON TASK 1
+        continue
+    if subject_id==14.0: ###NO DATA ON TASK 3
+        continue
+    if subject_id==20.0: ###NO DATA ON TASK 2
+        continue
+    if subject_id==37.0: ###NO DATA ON TASK 2
         continue
     matrix_error[subject_id] = {}
     #matrix that was used for subject
@@ -237,12 +249,13 @@ for subject_id,i in matrix_error.items():
     x.append(i[min(i, key=i.get)])
     for_correlation.append([subject_id,i[min(i, key=i.get)]])
 sns.set(color_codes=True)
-hist =sns.distplot(x, bins=5, kde=False, rug=True)
+hist =sns.distplot(x, bins=9, kde=False, rug=True)
 hist.set(xlabel='Min Error (degrees)', ylabel='Number of subjects')
 sns.plt.title('Histogram of matrix error across subjects')
 sns.plt.show()
 
-###tasks:
+
+# ###tasks:
 
 poses = pickle.load(open('data_after_analysis_15', 'rb'))
 
@@ -250,6 +263,12 @@ poses = pickle.load(open('data_after_analysis_15', 'rb'))
 task_error = {}
 for subject_id, sections in poses.items():
     if subject_id==35.0: ###NO DATA ON TASK 1
+        continue
+    if subject_id==14.0: ###NO DATA ON TASK 3
+        continue
+    if subject_id==20.0: ###NO DATA ON TASK 2
+        continue
+    if subject_id==37.0: ###NO DATA ON TASK 2
         continue
     task_error[subject_id] = {}
     which_matrix = int(subject_id) % 2
@@ -298,7 +317,7 @@ ax.set(xlabel='Subject ID', ylabel='Task Score(degrees)')
 sns.plt.title('Score in tasks across subjects')
 sns.plt.show()
 
-#plot total score for subject id:
+# #plot total score for subject id:
 total_score = {}
 for subject_id, sections in task_error_score.items():
     total_score[subject_id] = 0
@@ -321,7 +340,7 @@ ax.set(xlabel='Subject ID', ylabel='Total Score(degrees)')
 sns.plt.title('Total score across subjects')
 sns.plt.show()
 
-#plot histogram of error over all subjects:
+# #plot histogram of error over all subjects:
 x=total_score_df['total_score'].tolist()
 sns.set(color_codes=True)
 hist =sns.distplot(x, bins=4, kde=False, rug=True)
@@ -329,7 +348,7 @@ hist.set(xlabel='Total Score(degrees)', ylabel='Number of subjects')
 sns.plt.title('Histogram Total score across subjects')
 sns.plt.show()
 
-#plot histogram of error over tasks (task 1 << task3)
+# #plot histogram of error over tasks (task 1 << task3)
 fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, sharey=True)
 
 x1=task_error_score_df.set_index(['Task']).loc['task1']['Task score'].tolist()
@@ -349,14 +368,14 @@ ax3.set(xlabel='Best Score(degrees)', ylabel='Number of subjects' ,title='Task3'
 fig.suptitle('Histogram of error over tasks')
 sns.plt.show()
 
-#plot correlation - best_score ~ matrix_error
+# #plot correlation - best_score ~ matrix_error
 for_correlation_df = pd.DataFrame(for_correlation, columns=['subject_id','matrix_error','best_score'])
 result = sm.ols(formula="best_score ~ matrix_error", data=for_correlation_df).fit()
 print result.summary()
 sns.lmplot(x='matrix_error',y='best_score',data=for_correlation_df,fit_reg=True)
 sns.plt.show()
 
-#plot correlation - best_score ~ matrix_error
+# #plot correlation - best_score ~ matrix_error
 for_correlation_df=pd.merge(for_correlation_df, subject_number_of_poses_df, how='inner', on='subject_id')
 print for_correlation_df
 result = sm.ols(formula="best_score ~ matrix_error + number_of_poses", data=for_correlation_df).fit()
@@ -391,15 +410,16 @@ ax.set_zlabel('best_score')
 
 plt.show()
 
-# sns.lmplot(x='matrix_error',y='best_score',data=for_correlation_df,fit_reg=True)
-# sns.plt.show()
 
 
-###Crate n poses:
+# ###Crate n poses:
 
 ## k-means on all poses. k=16:
 kmeans = KMeans(n_clusters=16, n_init=50 ).fit(all_poses)
-# print kmeans.cluster_centers_
+poses_16= kmeans.cluster_centers_
+pickle.dump(obj=poses_16, file=open('../physical_curiosity_analysis/poses_16', 'wb'))
+
+print poses_16
 
 #Todo check the 16 poses.
 

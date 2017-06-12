@@ -11,10 +11,10 @@ import rosbag
 import pickle
 from os import listdir
 from os.path import isfile, join
-
+count=0
 sections = ['basic', 'learn', 'task1', 'task2', 'task3']
 
-mypath = '../data/'
+mypath = '/home/matan/PycharmProjects/physical_curiosity_analysis/all_data/'
 
 onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f)) and '.bag' in f and '2017-02-03' in f]
 data = {}
@@ -24,6 +24,8 @@ for f in onlyfiles:
     subject_id = float(info[4])
     if subject_id > 2.0:
         print('processing ', subject_id)
+        count+=1
+        print "count= ",count
         data[subject_id] = {}
 
         # open the bag file
@@ -83,4 +85,4 @@ for f in onlyfiles:
         bag.close()
 
 print(data.keys())
-pickle.dump(obj=data, file=open('../analysis/raw_data', 'wb'))
+pickle.dump(obj=data, file=open('raw_data_all', 'wb'))
