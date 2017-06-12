@@ -377,6 +377,18 @@ sns.plt.show()
 
 # #plot correlation - best_score ~ matrix_error
 for_correlation_df=pd.merge(for_correlation_df, subject_number_of_poses_df, how='inner', on='subject_id')
+result = sm.ols(formula="best_score ~ number_of_poses", data=for_correlation_df).fit()
+print result.summary()
+sns.lmplot(x='number_of_poses',y='best_score',data=for_correlation_df,fit_reg=True)
+sns.plt.show()
+
+# #plot correlation - best_score ~ matrix_error
+result = sm.ols(formula="matrix_error ~ number_of_poses", data=for_correlation_df).fit()
+print result.summary()
+sns.lmplot(x='number_of_poses',y='matrix_error',data=for_correlation_df,fit_reg=True)
+sns.plt.show()
+
+# #plot correlation - best_score ~ matrix_error
 print for_correlation_df
 result = sm.ols(formula="best_score ~ matrix_error + number_of_poses", data=for_correlation_df).fit()
 print result.summary()
@@ -417,7 +429,7 @@ plt.show()
 ## k-means on all poses. k=16:
 kmeans = KMeans(n_clusters=16, n_init=50 ).fit(all_poses)
 poses_16= kmeans.cluster_centers_
-pickle.dump(obj=poses_16, file=open('../physical_curiosity_analysis/poses_16', 'wb'))
+# pickle.dump(obj=poses_16, file=open('../physical_curiosity_analysis/poses_16', 'wb'))
 
 print poses_16
 
