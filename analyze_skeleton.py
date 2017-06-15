@@ -427,11 +427,11 @@ plt.show()
 # ###Crate n poses:
 
 ## k-means on all poses. k=16:
-kmeans = KMeans(n_clusters=16, n_init=50 ).fit(all_poses)
-poses_16= kmeans.cluster_centers_
-# pickle.dump(obj=poses_16, file=open('../physical_curiosity_analysis/poses_16', 'wb'))
+kmeans = KMeans(n_clusters=32, n_init=50 ).fit(all_poses)
+poses_32 = kmeans.cluster_centers_
+# pickle.dump(obj=poses_32, file=open('../physical_curiosity_analysis/poses_32', 'wb'))
 
-print poses_16
+print poses_32
 
 #Todo check the 16 poses.
 
